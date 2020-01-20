@@ -13,14 +13,12 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
 {
     public class ShellViewModel : Conductor<object>
     {
-        private readonly Realm _realm;
         private string _status;
 
         public string Status { get => _status; set { _status = value; NotifyOfPropertyChange(() => Status); } }
 
-        public ShellViewModel(Realm realm)
+        public ShellViewModel()
         {
-            _realm = realm;
             //var w = new Weather(realm);
         }
 
@@ -40,26 +38,12 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
 
             foreach (var file in files)
             {
-                if (File.Exists(file.Replace(".ogg", ".wav")))
-                {
-                    Status = $"{file.Replace(".ogg", ".wav")} exists. Skipping.\r\n\r\n{Status}";
+                var result = await new OggToWav().ConvertToWavAsync(file);
+                if (result.Contains("Skipped"))
                     skipped++;
-                }
                 else
-                {
-                    using var process = new Process();
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.FileName = "CMD";
-                    process.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                    process.StartInfo.Arguments = $" /c .\\vgmstream\\test -o \"{file.Replace(".ogg", ".wav")}\" \"{file}\"";
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.StartInfo.RedirectStandardError = true;
-                    var output = await RunExternalProcess.LaunchAsync(process);
-                    var x = file.LastIndexOf(@"\") + 1;
-                    Status = $"{output}{file.Substring(x).Replace(".ogg", ".wav")} created.\r\n\r\n{Status}";
                     processed++;
-                }
+                Status = $"{result}\r\n\r\n{Status}";
             }
 
             Status = $"Completed WAV Conversion. {processed} converted. {skipped} skipped.\r\n\r\n{Status}";
@@ -82,9 +66,19 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
 
             foreach (var file in files)
             {
-                if (File.Exists(file.Replace(".wav", ".mp3")))
+                var folder = Path.GetDirectoryName(file);
+                var mp3Folder = Path.Combine(folder, "..", "MP3");
+                if (!Directory.Exists(mp3Folder))
                 {
-                    Status = $"{file.Replace(".wav", ".mp3")} exists. Skipping.";
+                    Directory.CreateDirectory(mp3Folder);
+                }
+
+                var mp3File = Path.Combine(mp3Folder, Path.GetFileName(file).Replace(".wav", ".mp3"));
+
+
+                if (File.Exists(mp3File))
+                {
+                    Status = $"{mp3File} exists. Skipping.";
                     skipped++;
                 }
                 else
@@ -95,7 +89,7 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
                     else if (file.Contains("_ORCH_")) { album = "FFXIV:ORCH DAT Rip"; year = "2019"; }
                     else { album = "FFXIV:ARR DAT Rip"; year = "2013"; }
 
-                    Status = await new WavToMP3().WaveToMP3Async(file, file.Replace(".wav", ".mp3"), albumArtist: "Square Enix", album: album, year: year) + $"\r\n\r\n{Status}";
+                    Status = await new WavToMP3().WaveToMP3Async(file, mp3File, albumArtist: "Square Enix", album: album, year: year) + $"\r\n\r\n{Status}";
                     processed++;
                 }
             }
