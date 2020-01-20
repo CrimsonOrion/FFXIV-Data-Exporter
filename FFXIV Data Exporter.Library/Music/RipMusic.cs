@@ -4,10 +4,11 @@ using SaintCoinach.Xiv;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library.Music
 {
-    public class RipMusic
+    public class RipMusic : IRipMusic
     {
         private readonly ARealmReversed _realm;
 
@@ -15,6 +16,8 @@ namespace FFXIV_Data_Exporter.Library.Music
         {
             _realm = realm.RealmReversed;
         }
+
+        public async Task<List<string>> GetFilesAsync() => await Task.Run(() => GetFiles());
 
         public List<string> GetFiles()
         {
