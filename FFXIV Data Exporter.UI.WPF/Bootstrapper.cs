@@ -1,6 +1,7 @@
 ﻿using Caliburn.Micro;
 
 using FFXIV_Data_Exporter.Library;
+using FFXIV_Data_Exporter.Library.Music;
 using FFXIV_Data_Exporter.UI.WPF.ViewModels;
 
 using System;
@@ -31,9 +32,10 @@ namespace FFXIV_Data_Exporter.UI.WPF
                 .Instance(realm)
                 ;
 
-            //_container
-            //    .PerRequest<IFirewallLogProcessor, FirewallLogProcessor>()
-            //    ;
+            _container
+                .PerRequest<IWeather, Weather>()
+                .PerRequest<IRipMusic, RipMusic>()
+                ;
 
             _container
                 .Singleton<IWindowManager, WindowManager>()

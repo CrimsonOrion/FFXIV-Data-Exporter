@@ -1,6 +1,7 @@
 ﻿using SaintCoinach;
 
 using System;
+using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library
 {
@@ -9,7 +10,10 @@ namespace FFXIV_Data_Exporter.Library
         private static readonly DateTime _epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         public static string[] moons = { "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous", "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent" };
 
-        public static string CurrentMoonPhase(EorzeaDateTime eDate = null)
+        public static async Task<string> CurrentMoonPhaseAsync(EorzeaDateTime eDate) => await Task.Run(() => CurrentMoonPhase(eDate));
+        public static async Task<string> CurrentMoonPhaseAsync() => await CurrentMoonPhaseAsync(null);
+        public static string CurrentMoonPhase() => CurrentMoonPhase(null);
+        public static string CurrentMoonPhase(EorzeaDateTime eDate)
         {
             if (eDate == null)
             {

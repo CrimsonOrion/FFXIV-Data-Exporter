@@ -4,10 +4,11 @@ using SaintCoinach.Xiv;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library
 {
-    public class Weather
+    public class Weather : IWeather
     {
         private readonly ARealmReversed _realm;
         private readonly List<TerritoryType> _territories = new List<TerritoryType>();
@@ -18,23 +19,14 @@ namespace FFXIV_Data_Exporter.Library
 
             LoadZones();
 
-            var zones = new List<string> { "Yanxia", "Lower La Noscea" };
-            var weather = GetWeather(DateTime.Now, zones, 10);
         }
 
-        public List<string> GetWeather() => GetWeather(DateTime.Now, null, 1);
-        //public List<string> GetWeather(DateTime dateTime) => GetWeather(dateTime, null, 1);
-        //public List<string> GetWeather(IEnumerable<string> zones) => GetWeather(DateTime.Now, zones, 1);
-        //public List<string> GetWeather(int forcastIntervals) => GetWeather(DateTime.Now, null, forcastIntervals);
-        //public List<string> GetWeather(DateTime dateTime, IEnumerable<string> zones) => GetWeather(dateTime, zones, 1);
-        //public List<string> GetWeather(DateTime dateTime, int forcastIntervals) => GetWeather(dateTime, null, forcastIntervals);
-        //public List<string> GetWeather(IEnumerable<string> zones, int forcastIntervals) => GetWeather(DateTime.Now, zones, forcastIntervals);
-        public List<string> GetWeather(EorzeaDateTime eorzeaDateTime, IEnumerable<string> zones = null, int forcastIntervals = 1) => GetWeather(eorzeaDateTime.GetRealTime(), zones, forcastIntervals);
+        public async Task<List<string>> GetWeatherAsync(DateTime dateTime, IEnumerable<string> zones, int forcastIntervals) => await Task.Run(() => GetWeather(dateTime, zones, forcastIntervals));
 
-        public List<string> GetWeather(DateTime dateTime, IEnumerable<string> zones = null, int forcastIntervals = 1)
+        public List<string> GetWeather(DateTime dateTime, IEnumerable<string> zones, int forcastIntervals)
         {
             var weatherForcast = new List<string>();
-            
+
             if (zones == null)
             {
                 foreach (var territory in _territories)
