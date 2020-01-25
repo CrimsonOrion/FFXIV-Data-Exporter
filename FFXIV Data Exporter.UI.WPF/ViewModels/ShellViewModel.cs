@@ -1,10 +1,12 @@
 ﻿using Caliburn.Micro;
 
 using FFXIV_Data_Exporter.Library;
+using FFXIV_Data_Exporter.Library.Logging;
 using FFXIV_Data_Exporter.Library.Music;
+using FFXIV_Data_Exporter.UI.WPF.Configuration;
 
 using Microsoft.Win32;
-
+using System;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -14,10 +16,32 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
     {
         private string _status;
         private readonly IWeather _weather;
+        private readonly ICustomLogger _logger;
+        private readonly Realm _realm;
 
         public string Status { get => _status; set { _status = value; NotifyOfPropertyChange(() => Status); } }
 
-        public ShellViewModel(IWeather weather) => _weather = weather;
+        public ShellViewModel(ICustomLogger logger, Realm realm, IWeather weather)
+        {
+            _logger = logger;
+            _weather = weather;
+            _realm = realm;
+        }
+
+        public async Task UpdateRealm()
+        {
+            var result = string.Empty;
+            try
+            {
+                result = await Task.Run(() => _realm.Update());
+            }
+            catch (Exception ex)
+            {
+                result = $"Error updating:\r\n{ex.Message}";
+                _logger.LogError(ex, "Error updating.");
+            }
+            Status = $"{result}\r\n";
+        }
 
         public async Task OggToWav()
         {

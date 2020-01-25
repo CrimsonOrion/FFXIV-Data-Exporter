@@ -43,9 +43,10 @@ namespace FFXIV_Data_Exporter.UI.WPF
 
             ICustomLogger logger = new CustomLogger(new FileInfo(config.LogfilePath), true);
 
-            var realm = new Realm(config.GamePath, "english");
+            var realm = new Realm(logger, config.GamePath, "english");
+
             _container
-                .Instance(_container)                
+                .Instance(_container)
                 .Instance(config)
                 .Instance(logger)
                 .Instance(realm)
