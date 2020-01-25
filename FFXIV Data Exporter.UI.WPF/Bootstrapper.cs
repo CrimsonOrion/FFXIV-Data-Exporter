@@ -1,8 +1,12 @@
 ﻿using Caliburn.Micro;
 
 using FFXIV_Data_Exporter.Library;
+using FFXIV_Data_Exporter.Library.Logging;
 using FFXIV_Data_Exporter.Library.Music;
+using FFXIV_Data_Exporter.UI.WPF.Configuration;
 using FFXIV_Data_Exporter.UI.WPF.ViewModels;
+
+using Microsoft.Extensions.Configuration;
 
 using System;
 using System.Collections.Generic;
@@ -15,20 +19,35 @@ namespace FFXIV_Data_Exporter.UI.WPF
     public class Bootstrapper : BootstrapperBase
     {
         private readonly SimpleContainer _container = new SimpleContainer();
-        
+        private IConfigurationRoot _configuration;
+
         public Bootstrapper() => Initialize();
 
         protected override void Configure()
         {
-            var logFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "FFXIV Data Exporter Log.txt");
+            _configuration = new ConfigurationBuilder()
+                .AddJsonFile("appSettings.json", false, true)
+                .Build();
 
-            //ICustomLogger logger = new CustomLogger(new FileInfo(logFile), true);
+            var logfilePath = !string.IsNullOrEmpty(_configuration.GetSection("FilePaths").GetSection("LogfilePath").Value) ?
+                _configuration.GetSection("FilePaths").GetSection("LogfilePath").Value :
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "FFXIV Data Exporter Log.txt");
 
-            var path = Path.Combine(@"G:\", "SquareEnix", "FINAL FANTASY XIV - A Realm Reborn");
+            var gamePath = !string.IsNullOrEmpty(_configuration.GetSection("FilePaths").GetSection("GamePath").Value) ?
+                _configuration.GetSection("FilePaths").GetSection("GamePath").Value :
+                Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "SquareEnix", "FINAL FANTASY XIV - A Realm Reborn")) ?
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "SquareEnix", "FINAL FANTASY XIV - A Realm Reborn") :
+                "";
 
-            var realm = new Realm(path, "english");
+            var config = new FilePathsModel { LogfilePath = logfilePath, GamePath = gamePath };
+
+            ICustomLogger logger = new CustomLogger(new FileInfo(config.LogfilePath), true);
+
+            var realm = new Realm(config.GamePath, "english");
             _container
-                .Instance(_container)
+                .Instance(_container)                
+                .Instance(config)
+                .Instance(logger)
                 .Instance(realm)
                 ;
 
@@ -39,7 +58,7 @@ namespace FFXIV_Data_Exporter.UI.WPF
 
             _container
                 .Singleton<IWindowManager, WindowManager>()
-                .Singleton<IEventAggregator, EventAggregator>()
+                .Singleton<IEventAggregator, EventAggregator>()                
                 ;
 
             GetType().Assembly.GetTypes()
