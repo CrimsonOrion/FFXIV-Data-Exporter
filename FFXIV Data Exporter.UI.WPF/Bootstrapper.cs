@@ -1,6 +1,8 @@
 ﻿using Caliburn.Micro;
 
 using FFXIV_Data_Exporter.Library;
+using FFXIV_Data_Exporter.Library.Events;
+using FFXIV_Data_Exporter.Library.Exd;
 using FFXIV_Data_Exporter.Library.Logging;
 using FFXIV_Data_Exporter.Library.Music;
 using FFXIV_Data_Exporter.UI.WPF.Configuration;
@@ -55,11 +57,13 @@ namespace FFXIV_Data_Exporter.UI.WPF
             _container
                 .PerRequest<IWeather, Weather>()
                 .PerRequest<IRipMusic, RipMusic>()
+                .PerRequest<IAllExd, AllExd>()
                 ;
 
             _container
                 .Singleton<IWindowManager, WindowManager>()
-                .Singleton<IEventAggregator, EventAggregator>()                
+                .Singleton<IEventAggregator, EventAggregator>()
+                .Singleton<ISendMessageEvent, SendMessageEvent>()
                 ;
 
             GetType().Assembly.GetTypes()

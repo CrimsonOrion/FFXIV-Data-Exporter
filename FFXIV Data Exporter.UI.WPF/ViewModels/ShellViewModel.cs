@@ -1,13 +1,16 @@
 ﻿using Caliburn.Micro;
 
 using FFXIV_Data_Exporter.Library;
+using FFXIV_Data_Exporter.Library.Events;
+using FFXIV_Data_Exporter.Library.Exd;
 using FFXIV_Data_Exporter.Library.Logging;
 using FFXIV_Data_Exporter.Library.Music;
-using FFXIV_Data_Exporter.UI.WPF.Configuration;
 
 using Microsoft.Win32;
+
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
@@ -15,20 +18,28 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
     public class ShellViewModel : Conductor<object>
     {
         private string _status;
-        private readonly IWeather _weather;
+
         private readonly ICustomLogger _logger;
         private readonly Realm _realm;
+        private readonly IWeather _weather;
+        private readonly IAllExd _allExd;
+        private readonly ISendMessageEvent _sendMessageEvent;
+
 
         public string Status { get => _status; set { _status = value; NotifyOfPropertyChange(() => Status); } }
 
-        public ShellViewModel(ICustomLogger logger, Realm realm, IWeather weather)
+        public ShellViewModel(ICustomLogger logger, Realm realm, IWeather weather, IAllExd allExd, ISendMessageEvent sendMessageEvent)
         {
             _logger = logger;
-            _weather = weather;
             _realm = realm;
+            _weather = weather;
+            _allExd = allExd;
+            _sendMessageEvent = sendMessageEvent;
+
+            _sendMessageEvent.SentMessageEvent += new OnSendMessageHandler(UpdateStatus);
         }
 
-        public async Task UpdateRealm()
+        public async Task UpdateRealm(CancellationToken cancellationToken)
         {
             var result = string.Empty;
             try
@@ -43,7 +54,7 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
             Status = $"{result}\r\n";
         }
 
-        public async Task OggToWav()
+        public async Task OggToWav(CancellationToken cancellationToken)
         {
             var oFD = new OpenFileDialog() { Multiselect = true, Filter = "OGG Files | *.ogg" };
 
@@ -74,7 +85,7 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
             Status = $"Completed WAV Conversion. {processed} converted. {skipped} skipped.\r\n\r\n{Status}";
         }
 
-        public async Task WavToMP3()
+        public async Task WavToMP3(CancellationToken cancellationToken)
         {
             var oFD = new OpenFileDialog() { Multiselect = true, Filter = "Wav Files | *.wav" };
 
@@ -113,13 +124,17 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
             Status = $"Completed MP3 Conversion. {processed} converted. {skipped} skipped.\r\n\r\n{Status}";
         }
 
-        public async Task GetWeather()
+        public async Task RipExd(CancellationToken cancellationToken) => await _allExd.RipAsync();
+
+        public async Task GetWeather(CancellationToken cancellationToken)
         {
             var weather = await _weather.GetWeatherAsync();
 
             weather.ForEach(forcast => Status += $"{forcast}\r\n");
         }
 
-        public async Task GetMoonPhase() => Status = $"{await MoonPhase.CurrentMoonPhaseAsync()}\r\n\r\n{Status}";
+        public async Task GetMoonPhase(CancellationToken cancellationToken) => Status = $"{await MoonPhase.CurrentMoonPhaseAsync()}\r\n\r\n{Status}";
+
+        public void UpdateStatus(object sender, SendMessageEventArgs e) => Status = $"{e.Message}\r\n{Status}";
     }
 }
