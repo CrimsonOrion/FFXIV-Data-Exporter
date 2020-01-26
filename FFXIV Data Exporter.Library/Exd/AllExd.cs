@@ -14,11 +14,11 @@ namespace FFXIV_Data_Exporter.Library.Exd
 {
     public class AllExd : IAllExd
     {
-        private readonly Realm _realm;
+        private readonly IRealm _realm;
         private readonly ICustomLogger _logger;
         private readonly ISendMessageEvent _sendMessageEvent;
 
-        public AllExd(ICustomLogger logger, Realm realm, ISendMessageEvent sendMessageEvent)
+        public AllExd(ICustomLogger logger, IRealm realm, ISendMessageEvent sendMessageEvent)
         {
             _logger = logger;
             _realm = realm;
@@ -54,7 +54,7 @@ namespace FFXIV_Data_Exporter.Library.Exd
                         if (!target.Directory.Exists)
                             target.Directory.Create();
 
-                        //ExdHelper.SaveAsCsv(sheet, lang, target.FullName, false);
+                        ExdHelper.SaveAsCsv(sheet, lang, target.FullName, false);
                         await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{target.Name}"));
                         _logger.LogInformation($"Exported {target.Name}.");
                         ++successCount;

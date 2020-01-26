@@ -1,11 +1,11 @@
 ﻿using Caliburn.Micro;
 
 using FFXIV_Data_Exporter.Library;
+using FFXIV_Data_Exporter.Library.Configuration;
 using FFXIV_Data_Exporter.Library.Events;
 using FFXIV_Data_Exporter.Library.Exd;
 using FFXIV_Data_Exporter.Library.Logging;
 using FFXIV_Data_Exporter.Library.Music;
-using FFXIV_Data_Exporter.UI.WPF.Configuration;
 using FFXIV_Data_Exporter.UI.WPF.ViewModels;
 
 using Microsoft.Extensions.Configuration;
@@ -41,29 +41,31 @@ namespace FFXIV_Data_Exporter.UI.WPF
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "SquareEnix", "FINAL FANTASY XIV - A Realm Reborn") :
                 "";
 
-            var config = new FilePathsModel { LogfilePath = logfilePath, GamePath = gamePath };
+            var language = !string.IsNullOrEmpty(_configuration.GetSection("FilePaths").GetSection("Language").Value) ?
+                _configuration.GetSection("FilePaths").GetSection("Language").Value :
+                "english";
+
+            var config = new FilePathsModel { LogfilePath = logfilePath, GamePath = gamePath, Language = language };
 
             ICustomLogger logger = new CustomLogger(new FileInfo(config.LogfilePath), true);
-
-            var realm = new Realm(logger, config.GamePath, "english");
 
             _container
                 .Instance(_container)
                 .Instance(config)
                 .Instance(logger)
-                .Instance(realm)
-                ;
-
-            _container
-                .PerRequest<IWeather, Weather>()
-                .PerRequest<IRipMusic, RipMusic>()
-                .PerRequest<IAllExd, AllExd>()
                 ;
 
             _container
                 .Singleton<IWindowManager, WindowManager>()
                 .Singleton<IEventAggregator, EventAggregator>()
                 .Singleton<ISendMessageEvent, SendMessageEvent>()
+                .Singleton<IRealm, Realm>()
+                ;
+
+            _container
+                .PerRequest<IWeather, Weather>()
+                .PerRequest<IRipMusic, RipMusic>()
+                .PerRequest<IAllExd, AllExd>()
                 ;
 
             GetType().Assembly.GetTypes()

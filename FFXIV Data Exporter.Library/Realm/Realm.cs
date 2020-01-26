@@ -1,4 +1,5 @@
-﻿using FFXIV_Data_Exporter.Library.Logging;
+﻿using FFXIV_Data_Exporter.Library.Configuration;
+using FFXIV_Data_Exporter.Library.Logging;
 
 using SaintCoinach;
 using SaintCoinach.Ex;
@@ -8,15 +9,17 @@ using System;
 
 namespace FFXIV_Data_Exporter.Library
 {
-    public class Realm
+    public class Realm : IRealm
     {
         public ARealmReversed RealmReversed { get; }
         public ICustomLogger _logger;
+        public FilePathsModel _config;
 
-        public Realm(ICustomLogger logger, string gamePath, string language)
+        public Realm(ICustomLogger logger, FilePathsModel config)
         {
             _logger = logger;
-            RealmReversed = new ARealmReversed(gamePath, GetLanguage(language));
+            _config = config;
+            RealmReversed = new ARealmReversed(_config.GamePath, GetLanguage("english"));
         }
 
         private Language GetLanguage(string language) =>
@@ -38,7 +41,7 @@ namespace FFXIV_Data_Exporter.Library
             updates += $"Game Version: {gameVer}\r\nDefinition Version: {defVer}.\r\n\r\n";
             _logger.LogInformation($"Game Version: {gameVer}. Definition Version: {defVer}.");
             if (!RealmReversed.IsCurrentVersion)
-            {   
+            {
                 _logger.LogInformation("Updating Realm.");
                 IProgress<UpdateProgress> value = new ProgressReporter(_logger);
                 const bool IncludeDataChanges = true;

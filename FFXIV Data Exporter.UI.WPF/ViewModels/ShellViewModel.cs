@@ -20,15 +20,14 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
         private string _status;
 
         private readonly ICustomLogger _logger;
-        private readonly Realm _realm;
+        private readonly IRealm _realm;
         private readonly IWeather _weather;
         private readonly IAllExd _allExd;
         private readonly ISendMessageEvent _sendMessageEvent;
 
-
         public string Status { get => _status; set { _status = value; NotifyOfPropertyChange(() => Status); } }
 
-        public ShellViewModel(ICustomLogger logger, Realm realm, IWeather weather, IAllExd allExd, ISendMessageEvent sendMessageEvent)
+        public ShellViewModel(ICustomLogger logger, IRealm realm, IWeather weather, IAllExd allExd, ISendMessageEvent sendMessageEvent)
         {
             _logger = logger;
             _realm = realm;
@@ -41,17 +40,15 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
 
         public async Task UpdateRealm(CancellationToken cancellationToken)
         {
-            var result = string.Empty;
             try
             {
-                result = await Task.Run(() => _realm.Update());
+                await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(_realm.Update()));
             }
             catch (Exception ex)
             {
-                result = $"Error updating:\r\n{ex.Message}";
+                await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"Error updating:\r\n{ex.Message}"));
                 _logger.LogError(ex, "Error updating.");
             }
-            Status = $"{result}\r\n";
         }
 
         public async Task OggToWav(CancellationToken cancellationToken)
@@ -72,17 +69,17 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
 
                 if (File.Exists(wavFile))
                 {
-                    Status = $"{wavFile} exists. Skipping.\r\n\r\n{Status}";
+                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{wavFile} exists. Skipping."));
                     skipped++;
                     continue;
                 }
 
                 var result = await new OggToWav().ConvertToWavAsync(oggFile, wavFile);
                 processed++;
-                Status = $"{result}\r\n\r\n{Status}";
+                await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(result));
             }
 
-            Status = $"Completed WAV Conversion. {processed} converted. {skipped} skipped.\r\n\r\n{Status}";
+            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"Completed WAV Conversion. {processed} converted. {skipped} skipped."));
         }
 
         public async Task WavToMP3(CancellationToken cancellationToken)
@@ -105,7 +102,7 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
 
                 if (File.Exists(mp3File))
                 {
-                    Status = $"{mp3File} exists. Skipping.";
+                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{mp3File} exists. Skipping."));
                     skipped++;
                     continue;
                 }
@@ -118,10 +115,10 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
 
                 var result = await new WavToMP3().WaveToMP3Async(file, mp3File, albumArtist: "Square Enix", album: album, year: year);
                 processed++;
-                Status = $"{result}\r\n\r\n{Status}";
+                await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(result));
             }
 
-            Status = $"Completed MP3 Conversion. {processed} converted. {skipped} skipped.\r\n\r\n{Status}";
+            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"Completed MP3 Conversion. {processed} converted. {skipped} skipped."));
         }
 
         public async Task RipExd(CancellationToken cancellationToken) => await _allExd.RipAsync();
@@ -130,10 +127,10 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
         {
             var weather = await _weather.GetWeatherAsync();
 
-            weather.ForEach(forcast => Status += $"{forcast}\r\n");
+            weather.ForEach(async forcast => await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(forcast)));
         }
 
-        public async Task GetMoonPhase(CancellationToken cancellationToken) => Status = $"{await MoonPhase.CurrentMoonPhaseAsync()}\r\n\r\n{Status}";
+        public async Task GetMoonPhase(CancellationToken cancellationToken) => await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(await MoonPhase.CurrentMoonPhaseAsync()));
 
         public void UpdateStatus(object sender, SendMessageEventArgs e) => Status = $"{e.Message}\r\n{Status}";
     }

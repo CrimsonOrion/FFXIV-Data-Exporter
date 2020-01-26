@@ -13,7 +13,7 @@ namespace FFXIV_Data_Exporter.Library
         private readonly ARealmReversed _realm;
         private readonly List<TerritoryType> _territories = new List<TerritoryType>();
 
-        public Weather(Realm realm)
+        public Weather(IRealm realm)
         {
             _realm = realm.RealmReversed;
 
