@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library.Exd
@@ -25,13 +26,15 @@ namespace FFXIV_Data_Exporter.Library.Exd
             _sendMessageEvent = sendMessageEvent;
         }
 
-        public async Task RipAsync(string paramList)
+        public async Task RipAsync(string paramList, CancellationToken cancellationToken)
         {
             const string csvFileFormat = "exd-all/{0}{1}.csv";
             var arr = _realm.RealmReversed;
 
             IEnumerable<string> filesToExport;
 
+            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"Getting sheet list..."));
+            _logger.LogInformation("Getting sheet list...");
             if (string.IsNullOrWhiteSpace(paramList))
                 filesToExport = arr.GameData.AvailableSheets;
             else

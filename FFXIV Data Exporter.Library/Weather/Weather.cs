@@ -33,7 +33,7 @@ namespace FFXIV_Data_Exporter.Library
                 {
                     var eorzeaDateTime = new EorzeaDateTime(dateTime);
                     var zone = territory.PlaceName;
-                    for (int i = 0; i < forcastIntervals; i++)
+                    for (var i = 0; i < forcastIntervals; i++)
                     {
                         var weather = territory.WeatherRate.Forecast(eorzeaDateTime).Name;
                         var localTime = eorzeaDateTime.GetRealTime().ToLocalTime();
@@ -47,7 +47,7 @@ namespace FFXIV_Data_Exporter.Library
                 foreach (var zone in zones)
                 {
                     var eorzeaDateTime = new EorzeaDateTime(dateTime);
-                    for (int i = 0; i < forcastIntervals; i++)
+                    for (var i = 0; i < forcastIntervals; i++)
                     {
                         var weather = _territories.FirstOrDefault(_ => _.PlaceName.ToString() == zone).WeatherRate.Forecast(eorzeaDateTime).Name;
                         var localTime = eorzeaDateTime.GetRealTime().ToLocalTime();

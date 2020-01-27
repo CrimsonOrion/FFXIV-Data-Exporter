@@ -66,6 +66,9 @@ namespace FFXIV_Data_Exporter.UI.WPF
                 .PerRequest<IWeather, Weather>()
                 .PerRequest<IRipMusic, RipMusic>()
                 .PerRequest<IAllExd, AllExd>()
+                .PerRequest<IOggToScd, OggToScd>()
+                .PerRequest<IOggToWav, OggToWav>()
+                .PerRequest<IWavToMP3, WavToMP3>()
                 ;
 
             GetType().Assembly.GetTypes()

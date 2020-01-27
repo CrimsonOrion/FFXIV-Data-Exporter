@@ -2,8 +2,8 @@
 
 namespace FFXIV_Data_Exporter.Library.Music
 {
-    public interface IRipMusic
+    public interface IOggToScd
     {
-        Task GetFilesAsync();
+        Task ConvertToScdAsync(string[] currentOggFiles);
     }
 }

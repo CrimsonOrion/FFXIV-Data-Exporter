@@ -21,4 +21,10 @@
     <ProjectReference Include="..\..\SaintCoinach\SaintCoinach\SaintCoinach.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="scd_header.bin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

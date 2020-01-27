@@ -1,8 +1,11 @@
-﻿using SaintCoinach;
+﻿using FFXIV_Data_Exporter.Library.Events;
+using FFXIV_Data_Exporter.Library.Logging;
+
+using SaintCoinach;
 using SaintCoinach.Sound;
 using SaintCoinach.Xiv;
+
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -10,19 +13,20 @@ namespace FFXIV_Data_Exporter.Library.Music
 {
     public class RipMusic : IRipMusic
     {
+        private readonly ICustomLogger _logger;
+        private readonly ISendMessageEvent _sendMessageEvent;
         private readonly ARealmReversed _realm;
 
-        public RipMusic(Realm realm)
+        public RipMusic(ICustomLogger logger, ISendMessageEvent sendMessageEvent, IRealm realm)
         {
+            _logger = logger;
+            _sendMessageEvent = sendMessageEvent;
             _realm = realm.RealmReversed;
         }
 
-        public async Task<List<string>> GetFilesAsync() => await Task.Run(() => GetFiles());
-
-        public List<string> GetFiles()
+        public async Task GetFilesAsync()
         {
             var files = _realm.GameData.GetSheet("BGM");
-            var log = new List<string>();
             int success = 0, fail = 0;
 
             foreach (IXivRow file in files)
@@ -39,17 +43,24 @@ namespace FFXIV_Data_Exporter.Library.Music
                     {
                         if (ExportFile(path, null))
                         {
+                            var successMessage = $"{path} exported.";
+                            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(successMessage));
+                            _logger.LogInformation(successMessage);
                             success++;
                         }
                         else
                         {
-                            log.Add($"File {path} not found.");
+                            var notFoundMessage = $"File {path} not found.";
+                            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(notFoundMessage));
+                            _logger.LogInformation(notFoundMessage);
                             fail++;
                         }
                     }
                     catch (Exception ex)
                     {
-                        log.Add($"Could not export {path}. Reason: {ex.Message}");
+                        var errorMessage = $"Could not export {path}.";
+                        await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(errorMessage));
+                        _logger.LogError(ex, errorMessage);
                         fail++;
                     }
                 }
@@ -74,28 +85,35 @@ namespace FFXIV_Data_Exporter.Library.Music
                     {
                         if (ExportFile(filePath, name))
                         {
+                            var successMessage = $"{filePath}-{name} exported.";
+                            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(successMessage));
+                            _logger.LogInformation(successMessage);
                             success++;
                         }
                         else
                         {
-                            log.Add($"File {filePath} not found.");
+                            var notFoundMessage = $"File {filePath}-{name} not found.";
+                            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(notFoundMessage));
+                            _logger.LogInformation(notFoundMessage);
                             fail++;
                         }
                     }
                     catch (Exception ex)
                     {
-                        log.Add($"Could not export {filePath}. Reason: {ex.Message}");
+                        var errorMessage = $"Could not export {filePath}-{name}.";
+                        await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(errorMessage));
+                        _logger.LogError(ex, errorMessage);
                         fail++;
                     }
                 }
             }
 
-            log.Add($"{success} files exported. {fail} files failed.");
-
-            return log;
+            var message = $"{success} files exported. {fail} files failed.";
+            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(message));
+            _logger.LogInformation(message);
         }
 
-        bool ExportFile(string filePath, string suffix)
+        private bool ExportFile(string filePath, string suffix)
         {
             var result = false;
             if (_realm.Packs.TryGetFile(filePath, out var file))
@@ -103,7 +121,7 @@ namespace FFXIV_Data_Exporter.Library.Music
                 var scdFile = new ScdFile(file);
                 var count = 0;
 
-                for (int i = 0; i < scdFile.ScdHeader.EntryCount; ++i)
+                for (var i = 0; i < scdFile.ScdHeader.EntryCount; ++i)
                 {
                     var entry = scdFile.Entries[i];
 
@@ -127,11 +145,10 @@ namespace FFXIV_Data_Exporter.Library.Music
                         _ => throw new NotSupportedException()
                     };
 
-                    var targetPath = Path.Combine(_realm.GameVersion, Path.GetDirectoryName(filePath), extension.ToUpper(), fileNameWithoutExt + extension);
-
-                    var fileInfo = new FileInfo(targetPath);
+                    var fileInfo = new FileInfo(Path.Combine(_realm.GameVersion, Path.GetDirectoryName(filePath), extension.ToUpper().Replace(".", ""), fileNameWithoutExt + extension));
 
                     if (!fileInfo.Directory.Exists) fileInfo.Directory.Create();
+                    if (fileInfo.Exists) break;
 
                     File.WriteAllBytes(fileInfo.FullName, entry.GetDecoded());
                 }

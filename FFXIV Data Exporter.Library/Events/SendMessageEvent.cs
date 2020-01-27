@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace FFXIV_Data_Exporter.Library.Events
+﻿namespace FFXIV_Data_Exporter.Library.Events
 {
     public delegate void OnSendMessageHandler(object sender, SendMessageEventArgs e);
     public class SendMessageEvent : ISendMessageEvent

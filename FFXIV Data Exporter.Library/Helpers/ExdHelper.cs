@@ -1,20 +1,22 @@
 ﻿using SaintCoinach.Ex;
 using SaintCoinach.Xiv;
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+
 using Ex = SaintCoinach.Ex;
 
 namespace FFXIV_Data_Exporter.Library.Helpers
 {
-    
+
     /// <summary>
     /// Pretty much Ctrl+C, Ctrl+V from SaintCoinach.Cmd
     /// </summary>
-    static class ExdHelper
+    internal static class ExdHelper
     {
         public static CultureInfo _culture = new CultureInfo("en-US", false);
 
@@ -47,7 +49,9 @@ namespace FFXIV_Data_Exporter.Library.Helpers
         public static void WriteRows(StreamWriter s, ISheet sheet, Language language, IEnumerable<int> colIndices, bool writeRaw)
         {
             if (sheet.Header.Variant == 1)
+            {
                 WriteRowsCore(s, sheet.Cast<Ex.IRow>(), language, colIndices, writeRaw, WriteRowKey);
+            }
             else
             {
                 var rows = sheet.Cast<XivRow>().Select(_ => (Ex.Variant2.DataRow)_.SourceRow);
@@ -56,7 +60,7 @@ namespace FFXIV_Data_Exporter.Library.Helpers
             }
         }
 
-        static void WriteRowsCore(StreamWriter s, IEnumerable<Ex.IRow> rows, Language language, IEnumerable<int> colIndices, bool writeRaw, Action<StreamWriter, Ex.IRow> writeKey)
+        private static void WriteRowsCore(StreamWriter s, IEnumerable<Ex.IRow> rows, Language language, IEnumerable<int> colIndices, bool writeRaw, Action<StreamWriter, Ex.IRow> writeKey)
         {
             foreach (var row in rows.OrderBy(_ => _.Key))
             {
@@ -90,30 +94,24 @@ namespace FFXIV_Data_Exporter.Library.Helpers
             }
         }
 
-        static void WriteRowKey(StreamWriter s, Ex.IRow row)
-        {
-            s.Write(row.Key);
-        }
+        private static void WriteRowKey(StreamWriter s, Ex.IRow row) => s.Write(row.Key);
 
-        static void WriteSubRowKey(StreamWriter s, Ex.IRow row)
+        private static void WriteSubRowKey(StreamWriter s, Ex.IRow row)
         {
             var subRow = (Ex.Variant2.SubRow)row;
             s.Write(subRow.FullKey);
         }
 
-        static bool IsUnescaped(object self)
-        {
-            return (self is Boolean
-                || self is Byte
-                || self is SByte
-                || self is Int16
-                || self is Int32
-                || self is Int64
-                || self is UInt16
-                || self is UInt32
-                || self is UInt64
-                || self is Single
-                || self is Double);
-        }
+        private static bool IsUnescaped(object self) => (self is bool
+                || self is byte
+                || self is sbyte
+                || self is short
+                || self is int
+                || self is long
+                || self is ushort
+                || self is uint
+                || self is ulong
+                || self is float
+                || self is double);
     }
 }

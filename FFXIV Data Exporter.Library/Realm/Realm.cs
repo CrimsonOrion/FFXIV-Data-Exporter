@@ -1,4 +1,5 @@
 ﻿using FFXIV_Data_Exporter.Library.Configuration;
+using FFXIV_Data_Exporter.Library.Events;
 using FFXIV_Data_Exporter.Library.Logging;
 
 using SaintCoinach;
@@ -6,20 +7,54 @@ using SaintCoinach.Ex;
 using SaintCoinach.Ex.Relational.Update;
 
 using System;
+using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library
 {
     public class Realm : IRealm
     {
-        public ARealmReversed RealmReversed { get; }
         public ICustomLogger _logger;
         public FilePathsModel _config;
+        private readonly ISendMessageEvent _sendMessageEvent;
 
-        public Realm(ICustomLogger logger, FilePathsModel config)
+        public ARealmReversed RealmReversed { get; }
+
+        public Realm(ICustomLogger logger, FilePathsModel config, ISendMessageEvent sendMessageEvent)
         {
             _logger = logger;
             _config = config;
-            RealmReversed = new ARealmReversed(_config.GamePath, GetLanguage("english"));
+            _sendMessageEvent = sendMessageEvent;
+
+            RealmReversed = new ARealmReversed(_config.GamePath, GetLanguage(_config.Language));
+        }
+
+        public async Task Update()
+        {
+            _logger.LogInformation("Checking Realm Version...");
+            var gameVer = RealmReversed.GameVersion;
+            var defVer = RealmReversed.DefinitionVersion;
+            var updates = $"Game Version: {gameVer}\r\nDefinition Version: {defVer}.";
+            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(updates));
+            _logger.LogInformation($"Game Version: {gameVer}. Definition Version: {defVer}.");
+            if (!RealmReversed.IsCurrentVersion)
+            {
+                _logger.LogInformation("Updating Realm.");
+                IProgress<UpdateProgress> value = new ProgressReporter(_logger);
+                const bool IncludeDataChanges = true;
+                var updateReport = RealmReversed.Update(IncludeDataChanges, value);
+                foreach (var change in updateReport.Changes)
+                {
+                    updates = $"{value}\r\n{change.SheetName} {change.ChangeType}";
+                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(updates));
+                    _logger.LogInformation(updates);
+                }
+            }
+            else
+            {
+                updates = "Running current version.";
+                await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(updates));
+                _logger.LogInformation(updates);
+            }
         }
 
         private Language GetLanguage(string language) =>
@@ -31,34 +66,5 @@ namespace FFXIV_Data_Exporter.Library
                 "german" => Language.German,
                 _ => Language.None
             };
-
-        public string Update()
-        {
-            _logger.LogInformation("Checking Realm Version...");
-            var gameVer = RealmReversed.GameVersion;
-            var defVer = RealmReversed.DefinitionVersion;
-            var updates = string.Empty;
-            updates += $"Game Version: {gameVer}\r\nDefinition Version: {defVer}.\r\n\r\n";
-            _logger.LogInformation($"Game Version: {gameVer}. Definition Version: {defVer}.");
-            if (!RealmReversed.IsCurrentVersion)
-            {
-                _logger.LogInformation("Updating Realm.");
-                IProgress<UpdateProgress> value = new ProgressReporter(_logger);
-                const bool IncludeDataChanges = true;
-                var updateReport = RealmReversed.Update(IncludeDataChanges, value);
-                foreach (var change in updateReport.Changes)
-                {
-                    updates += $"{change.SheetName} {change.ChangeType}\r\n";
-                    _logger.LogInformation($"{value}\r\n{change.SheetName} {change.ChangeType}");
-                }
-                return updates;
-            }
-            else
-            {
-                updates += "Running current version.";
-                _logger.LogInformation("Running current version.");
-                return updates;
-            }
-        }
     }
 }

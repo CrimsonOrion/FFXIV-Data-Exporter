@@ -4,75 +4,18 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FFXIV_Data_Exporter.UI.WPF.Views"
-        mc:Ignorable="d" FontSize="18" FontFamily="Segou UI"
-        Title="FFXIV Data Exporter" Height="700" Width="700" WindowStartupLocation="CenterScreen">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="20" />
-            <ColumnDefinition Width="auto" />
-            <ColumnDefinition Width="auto" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="20" />
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="20" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="20" />
-        </Grid.RowDefinitions>
-
-        <!-- Row 1 -->
-        <Button x:Name="UpdateRealm" Grid.Row="1" Grid.Column="1" Margin="5">
-            Update Realm
-        </Button>
-
-        <ScrollViewer Grid.Row="1" Grid.Column="2" Grid.RowSpan="9" Grid.ColumnSpan="2"
-                      Margin="5"
-                      BorderThickness="2" BorderBrush="Black">
-            <TextBlock x:Name="Status" FontFamily="Courier New" FontSize="14" TextWrapping="Wrap" />
-        </ScrollViewer>
-
-        <!-- Row 2 -->
-        <Button x:Name="RipMusic" Grid.Row="2" Grid.Column="1" Margin="5">
-            Rip Music
-        </Button>
-
-        <!-- Row 3 -->
-        <Button x:Name="OggToWav" Grid.Row="3" Grid.Column="1" Margin="5">
-            Ogg -> Wav
-        </Button>
-
-        <!-- Row 4 -->
-        <Button x:Name="WavToMP3" Grid.Row="4" Grid.Column="1" Margin="5">
-            Wav -> MP3
-        </Button>
-
-        <!-- Row 5 -->
-        <Button x:Name="RipExd" Grid.Row="5" Grid.Column="1" Margin="5">
-            Rip Exd CSVs
-        </Button>
-
-        <!-- Row 6 -->
-        <Button x:Name="GetWeather" Grid.Row="6" Grid.Column="1" Margin="5">
-            Get Weather
-        </Button>
-
-        <!-- Row 7 -->
-        <Button x:Name="GetMoonPhase" Grid.Row="7" Grid.Column="1" Margin="5">
-            Get Moon Phase
-        </Button>
-
-        <!-- Row 8 -->
-        <Button x:Name="GetImages" Grid.Row="8" Grid.Column="1" Margin="5">
-            Get Images
-        </Button>
-
-    </Grid>
+        mc:Ignorable="d" FontSize="18" FontFamily="Segou UI" Background="WhiteSmoke"
+        Title="FFXIV Data Exporter" Height="700" Width="1000" WindowStartupLocation="CenterScreen">
+    <DockPanel>
+        <Menu DockPanel.Dock="Top" FontSize="14">
+            <MenuItem x:Name="UpdateRealmScreen" Header="_Realm" />
+            <MenuItem x:Name="ExdScreen" Header="_EXD" />
+            <MenuItem x:Name="MusicScreen" Header="_Music" />
+            <MenuItem x:Name="WeatherScreen" Header="_Weather" />
+            <MenuItem x:Name="SettingsScreen" Header="_Settings" />
+        </Menu>
+        <Grid>
+            <ContentControl x:Name="ActiveItem" Margin="10 5 10 10" />
+        </Grid>
+    </DockPanel>
 </Window>

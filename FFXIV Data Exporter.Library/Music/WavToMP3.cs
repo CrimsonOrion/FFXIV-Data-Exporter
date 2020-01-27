@@ -1,7 +1,11 @@
-﻿using NAudio.Lame;
+﻿using FFXIV_Data_Exporter.Library.Events;
+using FFXIV_Data_Exporter.Library.Logging;
+
+using NAudio.Lame;
 using NAudio.Wave;
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -11,10 +15,15 @@ using WavFile;
 
 namespace FFXIV_Data_Exporter.Library.Music
 {
-    public class WavToMP3
+    public class WavToMP3 : IWavToMP3
     {
-        public WavToMP3()
+        private readonly ICustomLogger _logger;
+        private readonly ISendMessageEvent _sendMessageEvent;
+
+        public WavToMP3(ICustomLogger logger, ISendMessageEvent sendMessageEvent)
         {
+            _logger = logger;
+            _sendMessageEvent = sendMessageEvent;
         }
 
         public string WaveToMP3(string waveFileName, string mp3FileName, int bitRate = 192)
@@ -22,18 +31,70 @@ namespace FFXIV_Data_Exporter.Library.Music
             using var reader = new AudioFileReader(waveFileName);
             using var writer = new LameMP3FileWriter(mp3FileName, reader.WaveFormat, bitRate);
             reader.CopyTo(writer);
-            return $"{mp3FileName} created.";
+            var message = $"{mp3FileName} created.";
+            _logger.LogInformation(message);
+            return message;
         }
 
-        public string MP3ToWave(string mp3FileName, string waveFileName)
+        public async Task MP3ToWaveAsync(string mp3FileName, string waveFileName)
         {
             using var reader = new Mp3FileReader(mp3FileName);
             using var writer = new WaveFileWriter(waveFileName, reader.WaveFormat);
             reader.CopyTo(writer);
-            return $"{waveFileName} created.";
+            var message = $"{waveFileName} created.";
+            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(message));
+            _logger.LogInformation(message);
         }
 
-        public async Task<string> WaveToMP3Async(
+        public async Task ConvertToMP3Async(IEnumerable<string> wavFiles)
+        {
+            int processed = 0, skipped = 0, failed = 0;
+            foreach (var file in wavFiles)
+            {
+                string album, year;
+
+                var folder = Path.GetDirectoryName(file);
+                var parentFolder = Directory.GetParent(folder);
+                var mp3Folder = Path.Combine(parentFolder.FullName, "MP3");
+
+                if (!Directory.Exists(mp3Folder)) Directory.CreateDirectory(mp3Folder);
+
+                var mp3File = Path.Combine(mp3Folder, Path.GetFileName(file).Replace(".wav", ".mp3"));
+
+                if (File.Exists(mp3File))
+                {
+                    var skipMessage = $"{mp3File} exists. Skipping.";
+                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(skipMessage));
+                    _logger.LogInformation(skipMessage);
+                    skipped++;
+                    continue;
+                }
+
+                if (file.Contains("_EX3_")) { album = "FFXIV:ShB DAT Rip"; year = "2019"; }
+                else if (file.Contains("_EX2_")) { album = "FFXIV:SB DAT Rip"; year = "2017"; }
+                else if (file.Contains("_EX1_")) { album = "FFXIV:HW DAT Rip"; year = "2015"; }
+                else if (file.Contains("_ORCH_")) { album = "FFXIV:ORCH DAT Rip"; year = "2019"; }
+                else { album = "FFXIV:ARR DAT Rip"; year = "2013"; }
+
+                try
+                {
+                    await ConvertAsync(file, mp3File, albumArtist: "Square Enix", album: album, year: year);
+                    processed++;
+                }
+                catch (Exception ex)
+                {
+                    var errorMessage = $"Unable to convert {mp3File}";
+                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(errorMessage));
+                    _logger.LogError(ex, errorMessage);
+                    failed++;
+                }
+            }
+            var message = $"Completed MP3 Conversion. {processed} converted. {skipped} skipped. {failed} failed.";
+            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(message));
+            _logger.LogInformation(message);
+        }
+
+        private async Task ConvertAsync(
             string waveFileName,
             string mp3FileName,
             int bitRate = 192,
@@ -48,62 +109,55 @@ namespace FFXIV_Data_Exporter.Library.Music
             string genre = "",
             byte[] albumArt = null)
         {
-            try
+            var tag = new ID3TagData
             {
-                var tag = new ID3TagData
-                {
-                    Title = title,
-                    Artist = artist,
-                    Album = album,
-                    Year = year,
-                    Comment = comment,
-                    Genre = genre.Length == 0 ? LameMP3FileWriter.Genres[36] : genre, // 36 is game.  Full list @ http://ecmc.rochester.edu/ecmc/docs/lame/id3.html
-                    Subtitle = subtitle,
-                    AlbumArt = albumArt,
-                    AlbumArtist = albumArtist,
-                    Track = track
-                };
+                Title = title,
+                Artist = artist,
+                Album = album,
+                Year = year,
+                Comment = comment,
+                Genre = genre.Length == 0 ? LameMP3FileWriter.Genres[36] : genre, // 36 is game.  Full list @ http://ecmc.rochester.edu/ecmc/docs/lame/id3.html
+                Subtitle = subtitle,
+                AlbumArt = albumArt,
+                AlbumArtist = albumArtist,
+                Track = track
+            };
 
-                var reader = new AudioFileReader(waveFileName);
-                if (reader.WaveFormat.Channels <= 2)
+            var reader = new AudioFileReader(waveFileName);
+            if (reader.WaveFormat.Channels <= 2)
+            {
+                using (reader)
+                using (var writer = new LameMP3FileWriter(mp3FileName, reader.WaveFormat, bitRate, tag))
                 {
-                    using (reader)
-                    using (var writer = new LameMP3FileWriter(mp3FileName, reader.WaveFormat, bitRate, tag))
-                    {
-                        await reader.CopyToAsync(writer);
-                    }
+                    await reader.CopyToAsync(writer);
                 }
-                else if (reader.WaveFormat.Channels == 4 || reader.WaveFormat.Channels == 6)
+            }
+            else if (reader.WaveFormat.Channels == 4 || reader.WaveFormat.Channels == 6)
+            {
+                reader.Dispose();
+                mp3FileName = string.Empty;
+                await SplitWav(waveFileName);
+                var fileNames = MixSixChannel(waveFileName);
+                foreach (var fileName in fileNames)
                 {
-                    reader.Dispose();
-                    mp3FileName = string.Empty;
-                    SplitWav(waveFileName);
-                    var fileNames = MixSixChannel(waveFileName);
-                    foreach (var fileName in fileNames)
+                    using (reader = new AudioFileReader(fileName))
                     {
-                        using (reader = new AudioFileReader(fileName))
+                        using (var writer = new LameMP3FileWriter(fileName.Replace(".wav", ".mp3"), reader.WaveFormat, bitRate: bitRate, id3: tag))
                         {
-                            using (var writer = new LameMP3FileWriter(fileName.Replace(".wav", ".mp3"), reader.WaveFormat, bitRate: bitRate, id3: tag))
-                            {
-                                await reader.CopyToAsync(writer);
-                            }
-                            mp3FileName += fileName.Replace(".wav", ".mp3") + " ";
+                            await reader.CopyToAsync(writer);
                         }
+                        mp3FileName += fileName.Replace(".wav", ".mp3") + " ";
                     }
                 }
-                else
-                {
-                    throw new Exception($"Could not convert {mp3FileName}: It has {reader.WaveFormat.Channels} channels.");
-                }
-
-                var x = mp3FileName.LastIndexOf(@"\") + 1;
-
-                return $"{mp3FileName.Substring(x)} created";
             }
-            catch (Exception ex)
+            else
             {
-                return $"{waveFileName} failed due to error: {ex.Message}";
+                throw new Exception($"Could not convert {mp3FileName.Trim()}: It has {reader.WaveFormat.Channels} channels.");
             }
+
+            var createMessage = $"{mp3FileName} created";
+            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(createMessage));
+            _logger.LogInformation(createMessage);
         }
 
         private string[] MixSixChannel(string fileName)
@@ -139,28 +193,26 @@ namespace FFXIV_Data_Exporter.Library.Music
             outDevice.Play(); */
         }
 
-        private void SplitWav(string fileName)
+        private async Task SplitWav(string fileName)
         {
             var outputPath = fileName.Remove(fileName.Length - Path.GetFileName(fileName).Length);
 
             try
             {
                 long bytesTotal = 0;
-                var splitter = new WavFileSplitter(value => Console.WriteLine(string.Format("\rProgress: {0:0.0}%", value)));
+                var splitter = new WavFileSplitter(async value => await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(string.Format("\rProgress: {0:0.0}%", value))));
                 var sw = Stopwatch.StartNew();
                 bytesTotal = splitter.SplitWavFile(fileName, outputPath, CancellationToken.None);
                 sw.Stop();
-                Console.Write(Environment.NewLine);
-                Console.WriteLine(
-                    string.Format(
-                        "Data bytes processed: {0} ({1} MB)",
-                        bytesTotal, Math.Round((double)bytesTotal / (1024 * 1024), 1)));
-                Console.WriteLine(string.Format("Elapsed time: {0}", sw.Elapsed));
+                var message = $"Data bytes processed: {bytesTotal} ({Math.Round((double)bytesTotal / (1024 * 1024), 1)} MB)\r\nElapsed time: {sw.Elapsed}";
+                await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(message));
+                _logger.LogInformation(message);
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
-                Console.WriteLine(ex.StackTrace);
+                var errorMessage = $"Problem splitting {fileName}.";
+                await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(errorMessage));
+                _logger.LogError(ex, errorMessage);
             }
         }
     }

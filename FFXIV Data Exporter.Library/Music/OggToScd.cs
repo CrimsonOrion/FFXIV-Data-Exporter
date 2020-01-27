@@ -1,43 +1,53 @@
-﻿using System;
+﻿using FFXIV_Data_Exporter.Library.Events;
+using FFXIV_Data_Exporter.Library.Logging;
+
+using System;
 using System.IO;
 using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library.Music
 {
-    public class OggToScd
+    public class OggToScd : IOggToScd
     {
         private const int scdHeaderSize = 0x540;
+        private readonly ICustomLogger _logger;
+        private readonly ISendMessageEvent _sendMessageEvent;
 
-        public OggToScd()
+        public OggToScd(ICustomLogger logger, ISendMessageEvent sendMessageEvent)
         {
+            _logger = logger;
+            _sendMessageEvent = sendMessageEvent;
         }
 
-        public async Task<string> ConvertToSCDAsync(string[] currentOggFiles)
+        public async Task ConvertToScdAsync(string[] currentOggFiles)
         {
-            var numberOfFilesSucceeded = 0;
-            var numberOfFilesFailed = 0;
-            var result = "";
+            var processed = 0;
+            var failed = 0;
 
             foreach (var file in currentOggFiles)
             {
                 try
                 {
                     await Task.Run(() => Convert(file));
-                    //RenameFileExtension(file, "ogg");
-                    numberOfFilesSucceeded++;
+                    processed++;
+                    var scdFile = file.Contains(".scd.ogg") ? file.Replace(".ogg", "") : file.Replace(".ogg", ".scd");
+                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{new FileInfo(scdFile).Name} created"));
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    result += $"There was a problem converting {file}.\r\n{e.Message}\r\n\r\n";
-                    numberOfFilesFailed++;
+                    var message = $"There was a problem converting {file}.";
+                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{message}\r\n{ex.Message}."));
+                    _logger.LogError(ex, message);
+                    failed++;
                 }
             }
-            return result += $"Finished converting OGG files.\r\nNumber of files converted:{numberOfFilesSucceeded}\r\nNumber of files failed:{numberOfFilesFailed}\r\n\r\n";
+            var result = $"Completed SCD Conversion. {processed} converted. {failed} failed.";
+            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{result}"));
+            _logger.LogInformation(result);
         }
 
         private static byte[] ReadContentIntoByteArray(string file)
         {
-            //FileStream fileInputStream = null;
             var bFile = new byte[new FileInfo(file).Length];
 
             using (var fileInputStream = new FileStream(file, FileMode.Open))
@@ -49,7 +59,19 @@ namespace FFXIV_Data_Exporter.Library.Music
 
         private static void Convert(string oggPath)
         {
-            var ogg = ReadContentIntoByteArray(oggPath);
+            var filePath = new FileInfo(oggPath);
+
+            // Create Path
+            var scdFolder = Path.Combine(Directory.GetParent(Directory.GetParent(filePath.FullName).FullName).FullName, "SCD");
+            if (!Directory.Exists(scdFolder)) Directory.CreateDirectory(scdFolder);
+            var scdFile = filePath.Name.Contains(".scd.ogg") ? filePath.Name.Replace(".ogg", "") : filePath.Name.Replace(".ogg", ".scd");
+            var scdPath = Path.Combine(scdFolder, scdFile);
+
+            // If the file already exists, return.
+            if (File.Exists(scdPath)) return;
+
+            // Write out SCD
+            var ogg = ReadContentIntoByteArray(filePath.FullName);
 
             var volume = 1.0f;
             var numChannels = 2;
@@ -60,17 +82,7 @@ namespace FFXIV_Data_Exporter.Library.Music
             // Create Header
             var header = CreateSCDHeader(ogg.Length, volume, numChannels, sampleRate, loopStart, loopEnd);
 
-            //Write out scd
-            if (oggPath.Contains(".scd.ogg"))
-            {
-                oggPath = oggPath.Replace(".ogg", "");
-            }
-            else
-            {
-                oggPath = oggPath.Replace(".ogg", ".scd");
-            }
-
-            using var output = new BufferedStream(new FileStream(oggPath, FileMode.OpenOrCreate));
+            using var output = new BufferedStream(new FileStream(scdPath, FileMode.OpenOrCreate));
             output.Write(header, 0, header.Length);
             output.Write(ogg, 0, ogg.Length);
         }
