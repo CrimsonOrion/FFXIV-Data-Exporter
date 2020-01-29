@@ -31,24 +31,24 @@ namespace FFXIV_Data_Exporter.UI.WPF
                 .AddJsonFile("appSettings.json", false, true)
                 .Build();
 
-            var logfilePath = !string.IsNullOrEmpty(_configuration.GetSection("FilePaths").GetSection("LogfilePath").Value) ?
-                _configuration.GetSection("FilePaths").GetSection("LogfilePath").Value :
+            var logfilePath = !string.IsNullOrEmpty(_configuration.GetSection("File Paths").GetSection("Logfile Path").Value) ?
+                _configuration.GetSection("File Paths").GetSection("Logfile Path").Value :
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "FFXIV Data Exporter Log.txt");
 
-            var gamePath = !string.IsNullOrEmpty(_configuration.GetSection("FilePaths").GetSection("GamePath").Value) ?
-                _configuration.GetSection("FilePaths").GetSection("GamePath").Value :
+            var gamePath = !string.IsNullOrEmpty(_configuration.GetSection("File Paths").GetSection("Game Path").Value) ?
+                _configuration.GetSection("File Paths").GetSection("Game Path").Value :
                 Directory.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "SquareEnix", "FINAL FANTASY XIV - A Realm Reborn")) ?
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "SquareEnix", "FINAL FANTASY XIV - A Realm Reborn") :
                 "";
 
-            var language = !string.IsNullOrEmpty(_configuration.GetSection("FilePaths").GetSection("Language").Value) ?
-                _configuration.GetSection("FilePaths").GetSection("Language").Value :
+            var language = !string.IsNullOrEmpty(_configuration.GetSection("ExportSettings").GetSection("Language").Value) ?
+                _configuration.GetSection("ExportSettings").GetSection("Language").Value :
                 "english";
 
             var filepaths = new FilePathsModel { LogfilePath = logfilePath, GamePath = gamePath };
             var exportsettings = new ExdSettingsModel { Language = language };
 
-            var config = new Configuration { FilePaths = filepaths, ExportSettings = exportsettings };
+            var config = new AppConfiguration { FilePaths = filepaths, ExportSettings = exportsettings };
 
             ICustomLogger logger = new CustomLogger(new FileInfo(config.FilePaths.LogfilePath), true);
 

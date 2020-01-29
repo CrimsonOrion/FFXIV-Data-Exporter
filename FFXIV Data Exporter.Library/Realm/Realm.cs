@@ -14,18 +14,18 @@ namespace FFXIV_Data_Exporter.Library
     public class Realm : IRealm
     {
         public ICustomLogger _logger;
-        public FilePathsModel _config;
+        public AppConfiguration _config;
         private readonly ISendMessageEvent _sendMessageEvent;
 
         public ARealmReversed RealmReversed { get; }
 
-        public Realm(ICustomLogger logger, FilePathsModel config, ISendMessageEvent sendMessageEvent)
+        public Realm(ICustomLogger logger, AppConfiguration config, ISendMessageEvent sendMessageEvent)
         {
             _logger = logger;
             _config = config;
             _sendMessageEvent = sendMessageEvent;
 
-            RealmReversed = new ARealmReversed(_config.GamePath, GetLanguage(_config.Language));
+            RealmReversed = new ARealmReversed(_config.FilePaths.GamePath, GetLanguage(_config.ExportSettings.Language));
         }
 
         public async Task Update()

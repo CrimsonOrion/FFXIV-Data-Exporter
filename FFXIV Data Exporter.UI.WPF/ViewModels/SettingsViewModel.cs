@@ -8,9 +8,9 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
 {
     public class SettingsViewModel : Screen
     {
-        Configuration _config;
+        AppConfiguration _config;
 
-        public SettingsViewModel(Configuration config)
+        public SettingsViewModel(AppConfiguration config)
         {
             _config = config;
         }
