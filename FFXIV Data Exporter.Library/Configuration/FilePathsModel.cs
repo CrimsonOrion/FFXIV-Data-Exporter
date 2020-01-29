@@ -4,6 +4,5 @@
     {
         public string GamePath { get; set; }
         public string LogfilePath { get; set; }
-        public string Language { get; set; }
     }
 }

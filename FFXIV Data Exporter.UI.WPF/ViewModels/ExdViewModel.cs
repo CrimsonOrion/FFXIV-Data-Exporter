@@ -32,7 +32,7 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
         {
             try
             {
-                await _allExd.RipAsync();
+                await _allExd.RipAsync(cancellationToken);
             }
             catch (Exception ex)
             {

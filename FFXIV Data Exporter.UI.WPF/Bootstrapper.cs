@@ -45,9 +45,12 @@ namespace FFXIV_Data_Exporter.UI.WPF
                 _configuration.GetSection("FilePaths").GetSection("Language").Value :
                 "english";
 
-            var config = new FilePathsModel { LogfilePath = logfilePath, GamePath = gamePath, Language = language };
+            var filepaths = new FilePathsModel { LogfilePath = logfilePath, GamePath = gamePath };
+            var exportsettings = new ExdSettingsModel { Language = language };
 
-            ICustomLogger logger = new CustomLogger(new FileInfo(config.LogfilePath), true);
+            var config = new Configuration { FilePaths = filepaths, ExportSettings = exportsettings };
+
+            ICustomLogger logger = new CustomLogger(new FileInfo(config.FilePaths.LogfilePath), true);
 
             _container
                 .Instance(_container)
@@ -63,12 +66,12 @@ namespace FFXIV_Data_Exporter.UI.WPF
                 ;
 
             _container
-                .PerRequest<IWeather, Weather>()
-                .PerRequest<IRipMusic, RipMusic>()
                 .PerRequest<IAllExd, AllExd>()
+                .PerRequest<IRipMusic, RipMusic>()
                 .PerRequest<IOggToScd, OggToScd>()
                 .PerRequest<IOggToWav, OggToWav>()
                 .PerRequest<IWavToMP3, WavToMP3>()
+                .PerRequest<IWeather, Weather>()
                 ;
 
             GetType().Assembly.GetTypes()
