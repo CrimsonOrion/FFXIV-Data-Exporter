@@ -6,6 +6,7 @@ using SaintCoinach.Xiv;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library
@@ -24,7 +25,7 @@ namespace FFXIV_Data_Exporter.Library
             LoadZones();
         }
 
-        public async Task GetWeatherAsync(DateTime dateTime, IEnumerable<string> zones, int forcastIntervals)
+        public async Task GetWeatherAsync(DateTime dateTime, IEnumerable<string> zones, int forcastIntervals, CancellationToken cancellationToken)
         {
             if (zones == null)
             {
@@ -34,9 +35,9 @@ namespace FFXIV_Data_Exporter.Library
                     var zone = territory.PlaceName;
                     for (var i = 0; i < forcastIntervals; i++)
                     {
-                        var weather = territory.WeatherRate.Forecast(eorzeaDateTime).Name;
-                        var localTime = eorzeaDateTime.GetRealTime().ToLocalTime();
-                        await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{localTime}: {zone} - {weather}"));
+                        var weather = await Task.Run(() => territory.WeatherRate.Forecast(eorzeaDateTime).Name, cancellationToken);
+                        //var localTime = eorzeaDateTime.GetRealTime().ToLocalTime();
+                        _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"{zone} - {weather}"));
                         eorzeaDateTime = Increment(eorzeaDateTime);
                     }
                 }
@@ -48,16 +49,16 @@ namespace FFXIV_Data_Exporter.Library
                     var eorzeaDateTime = new EorzeaDateTime(dateTime);
                     for (var i = 0; i < forcastIntervals; i++)
                     {
-                        var weather = _territories.FirstOrDefault(_ => _.PlaceName.ToString() == zone).WeatherRate.Forecast(eorzeaDateTime).Name;
-                        var localTime = eorzeaDateTime.GetRealTime().ToLocalTime();
-                        await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{localTime}: {zone} - {weather}"));
+                        var weather = await Task.Run(() => _territories.FirstOrDefault(_ => _.PlaceName.ToString() == zone).WeatherRate.Forecast(eorzeaDateTime).Name, cancellationToken);
+                        //var localTime = eorzeaDateTime.GetRealTime().ToLocalTime();
+                        _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"{zone} - {weather}"));
                         eorzeaDateTime = Increment(eorzeaDateTime);
                     }
                 }
             }
         }
 
-        public async Task GetMoonPhaseAsync(EorzeaDateTime eDate)
+        public void GetMoonPhase(EorzeaDateTime eDate)
         {
             string[] moons = { "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous", "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent" };
 
@@ -71,7 +72,7 @@ namespace FFXIV_Data_Exporter.Library
             var percent = Math.Round(((daysIntoCycle % 16) / 16) * 100);
             // 4 days per moon.
             var index = Convert.ToInt32(Math.Floor(daysIntoCycle / 4));
-            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"Moon Phase: {moons[index]} {percent}%"));
+            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"Moon Phase: {moons[index]} {percent}%"));
         }
 
         private void LoadZones()

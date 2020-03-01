@@ -22,28 +22,26 @@ namespace FFXIV_Data_Exporter.Library.Helpers
 
         public static void SaveAsCsv(Ex.Relational.IRelationalSheet sheet, Language language, string path, bool writeRaw)
         {
-            using (var s = new StreamWriter(path, false, Encoding.UTF8))
+            using var s = new StreamWriter(path, false, Encoding.UTF8);
+            var indexLine = new StringBuilder("key");
+            var nameLine = new StringBuilder("#");
+            var typeLine = new StringBuilder("int32");
+
+            var colIndices = new List<int>();
+            foreach (var col in sheet.Header.Columns)
             {
-                var indexLine = new StringBuilder("key");
-                var nameLine = new StringBuilder("#");
-                var typeLine = new StringBuilder("int32");
+                indexLine.AppendFormat(",{0}", col.Index);
+                nameLine.AppendFormat(",{0}", col.Name);
+                typeLine.AppendFormat(",{0}", col.ValueType);
 
-                var colIndices = new List<int>();
-                foreach (var col in sheet.Header.Columns)
-                {
-                    indexLine.AppendFormat(",{0}", col.Index);
-                    nameLine.AppendFormat(",{0}", col.Name);
-                    typeLine.AppendFormat(",{0}", col.ValueType);
-
-                    colIndices.Add(col.Index);
-                }
-
-                s.WriteLine(indexLine);
-                s.WriteLine(nameLine);
-                s.WriteLine(typeLine);
-
-                ExdHelper.WriteRows(s, sheet, language, colIndices, writeRaw);
+                colIndices.Add(col.Index);
             }
+
+            s.WriteLine(indexLine);
+            s.WriteLine(nameLine);
+            s.WriteLine(typeLine);
+
+            WriteRows(s, sheet, language, colIndices, writeRaw);
         }
 
         public static void WriteRows(StreamWriter s, ISheet sheet, Language language, IEnumerable<int> colIndices, bool writeRaw)

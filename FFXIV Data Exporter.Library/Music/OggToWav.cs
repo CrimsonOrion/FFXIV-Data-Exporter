@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library.Music
@@ -21,7 +22,7 @@ namespace FFXIV_Data_Exporter.Library.Music
             _sendMessageEvent = sendMessageEvent;
         }
 
-        public async Task ConvertToWavAsync(IEnumerable<string> oggFiles)
+        public async Task ConvertToWavAsync(IEnumerable<string> oggFiles, CancellationToken cancellationToken)
         {
             int processed = 0, skipped = 0, failed = 0;
             foreach (var oggFile in oggFiles)
@@ -36,8 +37,8 @@ namespace FFXIV_Data_Exporter.Library.Music
 
                 if (File.Exists(wavFile))
                 {
-                    var skipMessage = $"{wavFile} exists. Skipping.";
-                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(skipMessage));
+                    var skipMessage = await Task.Run(() => $"{wavFile} exists. Skipping.");
+                    _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(skipMessage));
                     _logger.LogInformation(skipMessage);
                     skipped++;
                     continue;
@@ -51,13 +52,13 @@ namespace FFXIV_Data_Exporter.Library.Music
                 catch (Exception ex)
                 {
                     var errorMessage = $"Unable to convert {oggFile}";
-                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(errorMessage));
+                    _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(errorMessage));
                     _logger.LogError(ex, errorMessage);
                     failed++;
                 }
             }
             var message = $"Completed WAV Conversion. {processed} converted. {skipped} skipped. {failed} failed.";
-            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(message));
+            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(message));
             _logger.LogInformation(message);
         }
 
@@ -72,8 +73,8 @@ namespace FFXIV_Data_Exporter.Library.Music
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;
             var output = await RunExternalProcess.LaunchAsync(process);
-            var message = $"{output}{Path.GetFileName(wavFile)} created.";
-            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(message));
+            var message = $"{Path.GetFileName(wavFile)} created.{output}";
+            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(message));
             _logger.LogInformation(message);
         }
     }

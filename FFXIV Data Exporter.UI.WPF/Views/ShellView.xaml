@@ -8,14 +8,39 @@
         Title="FFXIV Data Exporter" Height="700" Width="1000" WindowStartupLocation="CenterScreen">
     <DockPanel>
         <Menu DockPanel.Dock="Top" FontSize="14">
-            <MenuItem x:Name="UpdateRealmScreen" Header="_Realm" />
-            <MenuItem x:Name="ExdScreen" Header="_EXD" />
-            <MenuItem x:Name="MusicScreen" Header="_Music" />
-            <MenuItem x:Name="WeatherScreen" Header="_Weather" />
-            <MenuItem x:Name="SettingsScreen" Header="_Settings" />
+            <MenuItem Header="_Realm">
+                <MenuItem x:Name="UpdateRealm" Header="Update Realm" />
+            </MenuItem>
+            <MenuItem Header="_EXD">
+                <MenuItem x:Name="RipExd" Header="Rip Exd" />
+            </MenuItem>
+            <MenuItem Header="_Music">
+                <MenuItem x:Name="RipMusic" Header="Rip Music" />
+                <MenuItem x:Name="OggToScd" Header="OGG -> SCD" />
+                <MenuItem x:Name="OggToWav" Header="OGG -> WAV" />
+                <MenuItem x:Name="WavToMP3" Header="WAV -> MP3" />
+            </MenuItem>
+            <MenuItem Header="_Weather">
+                <MenuItem x:Name="GetForcast" Header="Get Forcast" />
+                <MenuItem x:Name="GetMoonPhase" Header="Get Moon Phase" />
+            </MenuItem>
+            <MenuItem Header="_Settings">
+                
+            </MenuItem>
         </Menu>
         <Grid>
-            <ContentControl x:Name="ActiveItem" Margin="10 5 10 10" />
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            
+            <!--<ContentControl x:Name="ActiveItem" Grid.Column="0" Margin="10 5 10 10" /> -->
+            <TextBox x:Name="Status" Grid.Column="1" Margin="10 5 10 10" Background="WhiteSmoke" 
+                     FontFamily="Courier New" FontSize="14" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
         </Grid>
     </DockPanel>
 </Window>

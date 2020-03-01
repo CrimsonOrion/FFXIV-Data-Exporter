@@ -33,7 +33,7 @@ namespace FFXIV_Data_Exporter.Library.Exd
 
             IEnumerable<string> filesToExport;
 
-            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"Getting sheet list..."));
+            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"Getting sheet list..."));
             _logger.LogInformation("Getting sheet list...");
             if (string.IsNullOrWhiteSpace(paramList))
                 filesToExport = arr.GameData.AvailableSheets;
@@ -45,7 +45,8 @@ namespace FFXIV_Data_Exporter.Library.Exd
             foreach (var name in filesToExport)
             {
                 var sheet = arr.GameData.GetSheet(name);
-                foreach (var lang in sheet.Header.AvailableLanguages)
+                var language = _realm.RealmReversed.GameData.ActiveLanguage == Language.None ? sheet.Header.AvailableLanguages : new List<Language> { _realm.RealmReversed.GameData.ActiveLanguage };
+                foreach (var lang in language/*sheet.Header.AvailableLanguages*/)
                 {
                     var code = lang.GetCode();
                     if (code.Length > 0)
@@ -57,8 +58,8 @@ namespace FFXIV_Data_Exporter.Library.Exd
                         if (!target.Directory.Exists)
                             target.Directory.Create();
 
-                        ExdHelper.SaveAsCsv(sheet, lang, target.FullName, false);
-                        await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{target.Name}"));
+                        await Task.Run(() => ExdHelper.SaveAsCsv(sheet, lang, target.FullName, false));
+                        _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"{target.Name}"));
                         _logger.LogInformation($"Exported {target.Name}.");
                         ++successCount;
                     }
@@ -77,7 +78,7 @@ namespace FFXIV_Data_Exporter.Library.Exd
             }
             var returnValue = $"{successCount} files exported, {failCount} failed";
             _logger.LogInformation(returnValue);
-            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(returnValue));
+            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(returnValue));
         }
     }
 }

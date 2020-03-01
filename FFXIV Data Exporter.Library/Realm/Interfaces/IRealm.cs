@@ -1,5 +1,5 @@
 ﻿using SaintCoinach;
-
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library
@@ -8,6 +8,6 @@ namespace FFXIV_Data_Exporter.Library
     {
         ARealmReversed RealmReversed { get; }
 
-        Task Update();
+        Task UpdateAsync(CancellationToken cancellationToken);
     }
 }

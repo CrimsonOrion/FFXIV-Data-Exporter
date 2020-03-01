@@ -7,6 +7,7 @@ using SaintCoinach.Xiv;
 
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library.Music
@@ -24,7 +25,7 @@ namespace FFXIV_Data_Exporter.Library.Music
             _realm = realm.RealmReversed;
         }
 
-        public async Task GetFilesAsync()
+        public async Task GetFilesAsync(CancellationToken cancellationToken)
         {
             var files = _realm.GameData.GetSheet("BGM");
             int success = 0, fail = 0;
@@ -41,17 +42,17 @@ namespace FFXIV_Data_Exporter.Library.Music
                 {
                     try
                     {
-                        if (ExportFile(path, null))
+                        if (await Task.Run(() => ExportFile(path, null)))
                         {
                             var successMessage = $"{path} exported.";
-                            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(successMessage));
+                            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(successMessage));
                             _logger.LogInformation(successMessage);
                             success++;
                         }
                         else
                         {
                             var notFoundMessage = $"File {path} not found.";
-                            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(notFoundMessage));
+                            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(notFoundMessage));
                             _logger.LogInformation(notFoundMessage);
                             fail++;
                         }
@@ -59,7 +60,7 @@ namespace FFXIV_Data_Exporter.Library.Music
                     catch (Exception ex)
                     {
                         var errorMessage = $"Could not export {path}.";
-                        await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(errorMessage));
+                        _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(errorMessage));
                         _logger.LogError(ex, errorMessage);
                         fail++;
                     }
@@ -83,17 +84,17 @@ namespace FFXIV_Data_Exporter.Library.Music
                 {
                     try
                     {
-                        if (ExportFile(filePath, name))
+                        if (await Task.Run(() => ExportFile(filePath, name)))
                         {
                             var successMessage = $"{filePath}-{name} exported.";
-                            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(successMessage));
+                            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(successMessage));
                             _logger.LogInformation(successMessage);
                             success++;
                         }
                         else
                         {
                             var notFoundMessage = $"File {filePath}-{name} not found.";
-                            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(notFoundMessage));
+                            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(notFoundMessage));
                             _logger.LogInformation(notFoundMessage);
                             fail++;
                         }
@@ -101,7 +102,7 @@ namespace FFXIV_Data_Exporter.Library.Music
                     catch (Exception ex)
                     {
                         var errorMessage = $"Could not export {filePath}-{name}.";
-                        await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(errorMessage));
+                        _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(errorMessage));
                         _logger.LogError(ex, errorMessage);
                         fail++;
                     }
@@ -109,7 +110,7 @@ namespace FFXIV_Data_Exporter.Library.Music
             }
 
             var message = $"{success} files exported. {fail} files failed.";
-            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(message));
+            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(message));
             _logger.LogInformation(message);
         }
 

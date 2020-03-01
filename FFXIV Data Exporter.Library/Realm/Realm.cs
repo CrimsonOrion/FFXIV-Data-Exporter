@@ -7,6 +7,7 @@ using SaintCoinach.Ex;
 using SaintCoinach.Ex.Relational.Update;
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library
@@ -28,31 +29,31 @@ namespace FFXIV_Data_Exporter.Library
             RealmReversed = new ARealmReversed(_config.FilePaths.GamePath, GetLanguage(_config.ExportSettings.Language));
         }
 
-        public async Task Update()
+        public async Task UpdateAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Checking Realm Version...");
             var gameVer = RealmReversed.GameVersion;
             var defVer = RealmReversed.DefinitionVersion;
             var updates = $"Game Version: {gameVer}\r\nDefinition Version: {defVer}.";
-            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(updates));
+            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(updates));
             _logger.LogInformation($"Game Version: {gameVer}. Definition Version: {defVer}.");
             if (!RealmReversed.IsCurrentVersion)
             {
                 _logger.LogInformation("Updating Realm.");
                 IProgress<UpdateProgress> value = new ProgressReporter(_logger);
                 const bool IncludeDataChanges = true;
-                var updateReport = RealmReversed.Update(IncludeDataChanges, value);
+                var updateReport = await Task.Run(() => RealmReversed.Update(IncludeDataChanges, value), cancellationToken);
                 foreach (var change in updateReport.Changes)
                 {
-                    updates = $"{value}\r\n{change.SheetName} {change.ChangeType}";
-                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(updates));
+                    updates = await Task.Run(() => $"{value}\r\n{change.SheetName} {change.ChangeType}");
+                    _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(updates));
                     _logger.LogInformation(updates);
                 }
             }
             else
             {
                 updates = "Running current version.";
-                await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs(updates));
+                _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs(updates));
                 _logger.LogInformation(updates);
             }
         }

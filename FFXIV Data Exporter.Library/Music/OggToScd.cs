@@ -3,6 +3,7 @@ using FFXIV_Data_Exporter.Library.Logging;
 
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FFXIV_Data_Exporter.Library.Music
@@ -19,7 +20,7 @@ namespace FFXIV_Data_Exporter.Library.Music
             _sendMessageEvent = sendMessageEvent;
         }
 
-        public async Task ConvertToScdAsync(string[] currentOggFiles)
+        public async Task ConvertToScdAsync(string[] currentOggFiles, CancellationToken cancellationToken)
         {
             var processed = 0;
             var failed = 0;
@@ -31,18 +32,18 @@ namespace FFXIV_Data_Exporter.Library.Music
                     await Task.Run(() => Convert(file));
                     processed++;
                     var scdFile = file.Contains(".scd.ogg") ? file.Replace(".ogg", "") : file.Replace(".ogg", ".scd");
-                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{new FileInfo(scdFile).Name} created"));
+                    _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"{new FileInfo(scdFile).Name} created"));
                 }
                 catch (Exception ex)
                 {
                     var message = $"There was a problem converting {file}.";
-                    await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{message}\r\n{ex.Message}."));
+                    _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"{message}\r\n{ex.Message}."));
                     _logger.LogError(ex, message);
                     failed++;
                 }
             }
             var result = $"Completed SCD Conversion. {processed} converted. {failed} failed.";
-            await _sendMessageEvent.OnSendMessageEventAsync(new SendMessageEventArgs($"{result}"));
+            _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"{result}"));
             _logger.LogInformation(result);
         }
 
