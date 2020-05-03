@@ -15,21 +15,24 @@ namespace FFXIV_Data_Exporter.Library
     {
         private readonly ARealmReversed _realm;
         private readonly ISendMessageEvent _sendMessageEvent;
-        private readonly List<TerritoryType> _territories = new List<TerritoryType>();
+
+        private readonly List<TerritoryType> _territoryList = new List<TerritoryType>();
 
         public Weather(IRealm realm, ISendMessageEvent sendMessageEvent)
         {
             _realm = realm.RealmReversed;
             _sendMessageEvent = sendMessageEvent;
 
-            LoadZones();
+            _territoryList = LoadZones();
         }
+
+        public List<string> GetTerritoryPlaceNames() => _territoryList.Select(_ => _.PlaceName.Name.ToString()).ToList();
 
         public async Task GetWeatherAsync(DateTime dateTime, IEnumerable<string> zones, int forcastIntervals, CancellationToken cancellationToken)
         {
             if (zones == null)
             {
-                foreach (var territory in _territories)
+                foreach (var territory in _territoryList)
                 {
                     var eorzeaDateTime = new EorzeaDateTime(dateTime);
                     var zone = territory.PlaceName;
@@ -47,11 +50,12 @@ namespace FFXIV_Data_Exporter.Library
                 foreach (var zone in zones)
                 {
                     var eorzeaDateTime = new EorzeaDateTime(dateTime);
+                    
                     for (var i = 0; i < forcastIntervals; i++)
                     {
-                        var weather = await Task.Run(() => _territories.FirstOrDefault(_ => _.PlaceName.ToString() == zone).WeatherRate.Forecast(eorzeaDateTime).Name, cancellationToken);
-                        //var localTime = eorzeaDateTime.GetRealTime().ToLocalTime();
-                        _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"{zone} - {weather}"));
+                        var weather = await Task.Run(() => _territoryList.FirstOrDefault(_ => _.PlaceName.ToString() == zone).WeatherRate.Forecast(eorzeaDateTime).Name, cancellationToken);
+                        var localTime = eorzeaDateTime.GetRealTime().ToLocalTime();
+                        _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"{eorzeaDateTime}({localTime}): {zone} - {weather}"));
                         eorzeaDateTime = Increment(eorzeaDateTime);
                     }
                 }
@@ -75,15 +79,18 @@ namespace FFXIV_Data_Exporter.Library
             _sendMessageEvent.OnSendMessageEvent(new SendMessageEventArgs($"Moon Phase: {moons[index]} {percent}%"));
         }
 
-        private void LoadZones()
+        private List<TerritoryType> LoadZones()
         {
             var territoryType = _realm.GameData.GetSheet("TerritoryType").ToList();
+            var territoryList = new List<TerritoryType>();
             var keyList = new List<int>()
             {128,129,130,131,132,133,134,135,137,138,139,140,141,145,146,147,148,152,153,154,155,156,180,250,339,340,341,397,398,399,400,401,402,418,419,478,612,613,614,620,621,622,628,635,641,759,813,814,815,816,817,818,819,820};
             foreach (var key in keyList)
             {
-                _territories.Add((TerritoryType)territoryType.FirstOrDefault(_ => _.Key == key));
+                territoryList.Add((TerritoryType)territoryType.FirstOrDefault(_ => _.Key == key));
             }
+
+            return territoryList;
         }
 
         private EorzeaDateTime Increment(EorzeaDateTime eorzeaDateTime)

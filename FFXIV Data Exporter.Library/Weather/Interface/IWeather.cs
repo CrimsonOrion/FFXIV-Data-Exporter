@@ -1,5 +1,5 @@
 ﻿using SaintCoinach;
-
+using SaintCoinach.Xiv;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -26,5 +26,6 @@ namespace FFXIV_Data_Exporter.Library
         async Task GetWeatherAsync(EorzeaDateTime eorzeaDateTime, IEnumerable<string> zones, int forcastIntervals, CancellationToken cancellationToken) => await GetWeatherAsync(eorzeaDateTime.GetRealTime(), zones, forcastIntervals, cancellationToken);
 
         void GetMoonPhase() => GetMoonPhase(null);
+        List<string> GetTerritoryPlaceNames();
     }
 }
