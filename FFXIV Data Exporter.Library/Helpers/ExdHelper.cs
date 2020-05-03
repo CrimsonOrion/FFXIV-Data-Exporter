@@ -66,14 +66,13 @@ namespace FFXIV_Data_Exporter.Library.Helpers
 
                 if (useRow is IXivRow)
                     useRow = ((IXivRow)row).SourceRow;
-                var multiRow = useRow as IMultiRow;
 
                 writeKey(s, useRow);
                 foreach (var col in colIndices)
                 {
                     object v;
 
-                    if (language == Language.None || multiRow == null)
+                    if (language == Language.None || !(useRow is IMultiRow multiRow))
                         v = writeRaw ? useRow.GetRaw(col) : useRow[col];
                     else
                         v = writeRaw ? multiRow.GetRaw(col, language) : multiRow[col, language];

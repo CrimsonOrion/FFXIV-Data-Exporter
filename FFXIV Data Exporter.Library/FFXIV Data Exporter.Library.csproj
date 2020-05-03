@@ -18,7 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\SaintCoinach\SaintCoinach\SaintCoinach.csproj" />
+    <Reference Include="SaintCoinach">
+      <HintPath>..\..\SaintCoinach\SaintCoinach\bin\Debug\SaintCoinach.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
