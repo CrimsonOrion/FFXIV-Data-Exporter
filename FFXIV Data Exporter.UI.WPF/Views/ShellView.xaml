@@ -37,8 +37,8 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            
-            <!--<ContentControl x:Name="ActiveItem" Grid.Column="0" Margin="10 5 10 10" /> -->
+
+            <ContentControl x:Name="ActiveItem" Grid.Column="0" Margin="10 5 10 10" />
             <TextBox x:Name="Status" Grid.Column="1" Margin="10 5 10 10" Background="WhiteSmoke" 
                      FontFamily="Courier New" FontSize="14" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
         </Grid>

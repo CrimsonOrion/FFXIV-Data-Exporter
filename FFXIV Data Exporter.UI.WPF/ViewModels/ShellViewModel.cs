@@ -68,16 +68,17 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
             }
         }
 
-        public async Task GetForcast(CancellationToken cancellationToken)
+        public void GetForcast()
         {
-            try
-            {
-                await _weather.GetWeatherAsync(cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                ErrorMessage(ex, "Error getting forcast");
-            }
+            ActivateItem(IoC.Get<WeatherForcastViewModel>());
+            //try
+            //{
+            //    await _weather.GetWeatherAsync(cancellationToken);
+            //}
+            //catch (Exception ex)
+            //{
+            //    ErrorMessage(ex, "Error getting forcast");
+            //}
         }
 
         public async Task GetMoonPhase(CancellationToken cancellationToken)
