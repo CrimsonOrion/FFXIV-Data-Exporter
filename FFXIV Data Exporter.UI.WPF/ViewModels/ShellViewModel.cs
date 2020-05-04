@@ -3,14 +3,15 @@
 using FFXIV_Data_Exporter.Library;
 using FFXIV_Data_Exporter.Library.Events;
 using FFXIV_Data_Exporter.Library.Exd;
+using FFXIV_Data_Exporter.Library.Exporting.SQL;
 using FFXIV_Data_Exporter.Library.Logging;
 using FFXIV_Data_Exporter.Library.Music;
 
 using Microsoft.Win32;
-
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
 {
@@ -25,11 +26,12 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
         private readonly IOggToScd _oggToScd;
         private readonly IOggToWav _oggToWav;
         private readonly IWavToMP3 _wavToMP3;
+        IMSSqlExport _sqlExport;
         private string _status;
 
         public string Status { get => _status; set { _status = value; NotifyOfPropertyChange(() => Status); } }
 
-        public ShellViewModel(ICustomLogger logger, ISendMessageEvent sendMessageEvent, IRealm realm, IAllExd allExd, IWeather weather, IRipMusic ripMusic, IOggToScd oggToScd, IOggToWav oggToWav, IWavToMP3 wavToMP3)
+        public ShellViewModel(ICustomLogger logger, ISendMessageEvent sendMessageEvent, IRealm realm, IAllExd allExd, IWeather weather, IRipMusic ripMusic, IOggToScd oggToScd, IOggToWav oggToWav, IWavToMP3 wavToMP3, IMSSqlExport sqlExport)
         {
             _logger = logger;
             _realm = realm;
@@ -39,6 +41,7 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
             _oggToScd = oggToScd;
             _oggToWav = oggToWav;
             _wavToMP3 = wavToMP3;
+            _sqlExport = sqlExport;
             _sendMessageEvent = sendMessageEvent;
 
             _sendMessageEvent.SentMessageEvent += new OnSendMessageHandler(UpdateStatus);
@@ -65,6 +68,22 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
             catch (Exception ex)
             {
                 ErrorMessage(ex, "Error getting data files");
+            }
+        }
+
+        public async Task CreateMSSQLSchema(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var schemaFile = new FileInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "MSSqlSchema.sql"));
+
+                if (schemaFile.Exists) File.Delete(schemaFile.FullName);
+
+                await File.WriteAllLinesAsync(schemaFile.FullName, await Task.Run(() => _sqlExport.ExportSchema()), cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage(ex, "Error creating schema");
             }
         }
 
@@ -149,7 +168,7 @@ namespace FFXIV_Data_Exporter.UI.WPF.ViewModels
 
         public void SettingsScreen()
         {
-            //ActivateItem(IoC.Get<SettingsViewModel>());
+            ActivateItem(IoC.Get<SettingsViewModel>());
         }
 
         public void UpdateStatus(object sender, SendMessageEventArgs e) => Status = $"{e.Message}\r\n{Status}";

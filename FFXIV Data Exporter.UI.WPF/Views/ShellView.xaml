@@ -13,6 +13,7 @@
             </MenuItem>
             <MenuItem Header="_EXD">
                 <MenuItem x:Name="RipExd" Header="Rip Exd" />
+                <MenuItem x:Name="CreateMSSqlSchema" Header="Create MSSQL Schema" />
             </MenuItem>
             <MenuItem Header="_Music">
                 <MenuItem x:Name="RipMusic" Header="Rip Music" />

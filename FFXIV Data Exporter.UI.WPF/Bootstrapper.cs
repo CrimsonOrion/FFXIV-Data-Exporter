@@ -4,6 +4,7 @@ using FFXIV_Data_Exporter.Library;
 using FFXIV_Data_Exporter.Library.Configuration;
 using FFXIV_Data_Exporter.Library.Events;
 using FFXIV_Data_Exporter.Library.Exd;
+using FFXIV_Data_Exporter.Library.Exporting.SQL;
 using FFXIV_Data_Exporter.Library.Logging;
 using FFXIV_Data_Exporter.Library.Music;
 using FFXIV_Data_Exporter.UI.WPF.ViewModels;
@@ -72,6 +73,7 @@ namespace FFXIV_Data_Exporter.UI.WPF
                 .PerRequest<IOggToWav, OggToWav>()
                 .PerRequest<IWavToMP3, WavToMP3>()
                 .PerRequest<IWeather, Weather>()
+                .PerRequest<IMSSqlExport, MSSqlExport>()
                 ;
 
             GetType().Assembly.GetTypes()
